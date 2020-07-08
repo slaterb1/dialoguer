@@ -5,6 +5,44 @@ use console::{style, Key, Term};
 use std::cmp::{max, min};
 use theme::{get_default_theme, TermThemeRenderer, Theme};
 
+trait DateAdjust {
+    fn increment_year(&self) -> Self;
+    fn decrement_year(&self) -> Self;
+    // fn increment_month(&self) -> Self;
+    // fn decrement_month(&self) -> Self;
+}
+
+impl<T> DateAdjust for T
+where
+    T: Datelike,
+{
+    fn increment_year(&self) -> Self {
+        self.with_year(self.year() + 1).unwrap_or_else(|| {
+            // If we're currently on a leap day we know how to handle a failure
+            assert_eq!(self.month(), 2, "year increment failed away from leap day");
+            assert_eq!(self.day(), 29, "year increment failed away from leap day");
+
+            self.with_day(28)
+                .unwrap()
+                .with_year(self.year() + 1)
+                .unwrap()
+        })
+    }
+
+    fn decrement_year(&self) -> Self {
+        self.with_year(self.year() - 1).unwrap_or_else(|| {
+            // If we're currently on a leap day we know how to handle a failure
+            assert_eq!(self.month(), 2, "year increment failed away from leap day");
+            assert_eq!(self.day(), 29, "year increment failed away from leap day");
+
+            self.with_day(28)
+                .unwrap()
+                .with_year(self.year() - 1)
+                .unwrap()
+        })
+    }
+}
+
 /// The possible types of datetime selections that can be made.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum DateType {
@@ -227,9 +265,8 @@ impl<'a> DateTimeSelect<'a> {
 
             // Display typed numbers if show_match is true.
             if self.show_match {
-                let str_num: Vec<String> = digits.iter().cloned().map(|c| c.to_string()).collect();
-                let str_num: String = str_num.join("");
-                term.write_line(&str_num[..])?;
+                let str_num: Vec<String> = digits.iter().map(|c| c.to_string()).collect();
+                term.write_line(&str_num.join(""))?;
             }
 
             match term.read_key()? {
@@ -265,20 +302,20 @@ impl<'a> DateTimeSelect<'a> {
                             date_val.second(),
                         ),
                     };
-                    return Ok(date_str.to_owned());
+                    return Ok(date_str);
                 }
                 Key::ArrowRight | Key::Char('l') => {
                     pos = if pos == max_pos { 0 } else { pos + 1 };
-                    digits = Vec::with_capacity(4);
+                    digits.clear();
                 }
                 Key::ArrowLeft | Key::Char('h') => {
                     pos = if pos == 0 { max_pos } else { pos - 1 };
-                    digits = Vec::with_capacity(4);
+                    digits.clear();
                 }
                 // Increment datetime by 1.
                 Key::ArrowUp | Key::Char('j') => {
                     date_val = match (&self.date_type, pos) {
-                        (DateType::Date, 0) => date_val.with_year(date_val.year() + 1).unwrap(),
+                        (DateType::Date, 0) => date_val.increment_year(),
                         (DateType::Date, 1) => {
                             if date_val.month() + 1 > 12 {
                                 date_val
@@ -302,7 +339,7 @@ impl<'a> DateTimeSelect<'a> {
                         (DateType::Time, 2) => {
                             date_val.checked_add_signed(Duration::seconds(1)).unwrap()
                         }
-                        (DateType::DateTime, 0) => date_val.with_year(date_val.year() + 1).unwrap(),
+                        (DateType::DateTime, 0) => date_val.increment_year(),
                         (DateType::DateTime, 1) => {
                             if date_val.month() + 1 > 12 {
                                 date_val
@@ -335,7 +372,7 @@ impl<'a> DateTimeSelect<'a> {
                 // Decrement the datetime by 1.
                 Key::ArrowDown | Key::Char('k') => {
                     date_val = match (&self.date_type, pos) {
-                        (DateType::Date, 0) => date_val.with_year(date_val.year() - 1).unwrap(),
+                        (DateType::Date, 0) => date_val.decrement_year(),
                         (DateType::Date, 1) => {
                             if date_val.month() - 1 == 0 {
                                 date_val
@@ -359,7 +396,7 @@ impl<'a> DateTimeSelect<'a> {
                         (DateType::Time, 2) => {
                             date_val.checked_sub_signed(Duration::seconds(1)).unwrap()
                         }
-                        (DateType::DateTime, 0) => date_val.with_year(date_val.year() - 1).unwrap(),
+                        (DateType::DateTime, 0) => date_val.decrement_year(),
                         (DateType::DateTime, 1) => {
                             if date_val.month() - 1 == 0 {
                                 date_val
@@ -391,8 +428,8 @@ impl<'a> DateTimeSelect<'a> {
                 }
                 // Allow numerical inputs.
                 Key::Char(val) => {
-                    if val.is_digit(10) {
-                        digits.push(val.to_digit(10).unwrap());
+                    if let Some(digit) = val.to_digit(10) {
+                        digits.push(digit);
                         // Need 4 digits to set year
                         if pos == 0 && digits.len() == 4 {
                             let num =
@@ -402,7 +439,7 @@ impl<'a> DateTimeSelect<'a> {
                                 DateType::DateTime => date_val.with_year(num as i32).unwrap(),
                                 DateType::Time => panic!("Time not supported for 4 digits"),
                             };
-                            digits = Vec::with_capacity(4);
+                            digits.clear();
                         // Have 2 digits in any position, including 0 if hours.
                         } else if digits.len() == 2 && (pos > 0 || self.date_type == DateType::Time)
                         {
@@ -438,10 +475,10 @@ impl<'a> DateTimeSelect<'a> {
                                     panic!("stepped out of bounds on DateTime")
                                 }
                             };
-                            digits = Vec::with_capacity(4);
+                            digits.clear();
                         }
                     } else {
-                        digits = Vec::with_capacity(4);
+                        digits.clear();
                     }
                 }
                 _ => {}
