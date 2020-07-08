@@ -8,9 +8,11 @@ use theme::{get_default_theme, TermThemeRenderer, Theme};
 trait DateAdjust {
     fn increment_year(&self) -> Self;
     fn decrement_year(&self) -> Self;
-    // fn increment_month(&self) -> Self;
-    // fn decrement_month(&self) -> Self;
+    fn increment_month(&self) -> Self;
+    fn decrement_month(&self) -> Self;
 }
+
+static MONTH_END_DAYS: &[u32] = &[0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
 impl<T> DateAdjust for T
 where
@@ -32,14 +34,62 @@ where
     fn decrement_year(&self) -> Self {
         self.with_year(self.year() - 1).unwrap_or_else(|| {
             // If we're currently on a leap day we know how to handle a failure
-            assert_eq!(self.month(), 2, "year increment failed away from leap day");
-            assert_eq!(self.day(), 29, "year increment failed away from leap day");
+            assert_eq!(self.month(), 2, "year decrement failed away from leap day");
+            assert_eq!(self.day(), 29, "year decrement failed away from leap day");
 
             self.with_day(28)
                 .unwrap()
                 .with_year(self.year() - 1)
                 .unwrap()
         })
+    }
+
+    fn increment_month(&self) -> Self {
+        let new_month = self.month() + 1;
+        if new_month > 12 {
+            // This case should be infallible since both December and January have 31 days
+            self.with_year(self.year() + 1)
+                .unwrap()
+                .with_month(1)
+                .unwrap()
+        } else {
+            self.with_month(new_month).unwrap_or_else(|| {
+                // We've stepped off the end of the month most likely, adjust the day if so
+                assert!(
+                    self.day() > MONTH_END_DAYS[new_month as usize],
+                    "month increment failed with valid day in next month"
+                );
+
+                self.with_day(MONTH_END_DAYS[new_month as usize])
+                    .unwrap()
+                    .with_month(new_month)
+                    .unwrap()
+            })
+        }
+    }
+
+    fn decrement_month(&self) -> Self {
+        let new_month = self.month() - 1;
+        if new_month < 1 {
+            // This case should be infallible since both December and January have 31 days
+            self.with_year(self.year() - 1)
+                .unwrap()
+                .with_month(12)
+                .unwrap()
+        } else {
+            self.with_month(new_month).unwrap_or_else(|| {
+                // We've stepped off the end of the month most likely, adjust the day if so
+                assert!(
+                    self.day() > MONTH_END_DAYS[new_month as usize],
+                    "month decrement failed with valid day in next month"
+                );
+
+                self.with_day(MONTH_END_DAYS[new_month as usize])
+                    .unwrap()
+                    .with_month(new_month)
+                    .unwrap()
+            })
+        }
     }
 }
 
@@ -316,17 +366,7 @@ impl<'a> DateTimeSelect<'a> {
                 Key::ArrowUp | Key::Char('j') => {
                     date_val = match (&self.date_type, pos) {
                         (DateType::Date, 0) => date_val.increment_year(),
-                        (DateType::Date, 1) => {
-                            if date_val.month() + 1 > 12 {
-                                date_val
-                                    .with_year(date_val.year() + 1)
-                                    .unwrap()
-                                    .with_month(1)
-                                    .unwrap()
-                            } else {
-                                date_val.with_month(date_val.month() + 1).unwrap()
-                            }
-                        }
+                        (DateType::Date, 1) => date_val.increment_month(),
                         (DateType::Date, 2) => {
                             date_val.checked_add_signed(Duration::days(1)).unwrap()
                         }
@@ -340,17 +380,7 @@ impl<'a> DateTimeSelect<'a> {
                             date_val.checked_add_signed(Duration::seconds(1)).unwrap()
                         }
                         (DateType::DateTime, 0) => date_val.increment_year(),
-                        (DateType::DateTime, 1) => {
-                            if date_val.month() + 1 > 12 {
-                                date_val
-                                    .with_year(date_val.year() + 1)
-                                    .unwrap()
-                                    .with_month(1)
-                                    .unwrap()
-                            } else {
-                                date_val.with_month(date_val.month() + 1).unwrap()
-                            }
-                        }
+                        (DateType::DateTime, 1) => date_val.increment_month(),
                         (DateType::DateTime, 2) => {
                             date_val.checked_add_signed(Duration::days(1)).unwrap()
                         }
@@ -373,17 +403,7 @@ impl<'a> DateTimeSelect<'a> {
                 Key::ArrowDown | Key::Char('k') => {
                     date_val = match (&self.date_type, pos) {
                         (DateType::Date, 0) => date_val.decrement_year(),
-                        (DateType::Date, 1) => {
-                            if date_val.month() - 1 == 0 {
-                                date_val
-                                    .with_year(date_val.year() - 1)
-                                    .unwrap()
-                                    .with_month(12)
-                                    .unwrap()
-                            } else {
-                                date_val.with_month(date_val.month() - 1).unwrap()
-                            }
-                        }
+                        (DateType::Date, 1) => date_val.decrement_month(),
                         (DateType::Date, 2) => {
                             date_val.checked_sub_signed(Duration::days(1)).unwrap()
                         }
@@ -397,17 +417,7 @@ impl<'a> DateTimeSelect<'a> {
                             date_val.checked_sub_signed(Duration::seconds(1)).unwrap()
                         }
                         (DateType::DateTime, 0) => date_val.decrement_year(),
-                        (DateType::DateTime, 1) => {
-                            if date_val.month() - 1 == 0 {
-                                date_val
-                                    .with_year(date_val.year() - 1)
-                                    .unwrap()
-                                    .with_month(12)
-                                    .unwrap()
-                            } else {
-                                date_val.with_month(date_val.month() - 1).unwrap()
-                            }
-                        }
+                        (DateType::DateTime, 1) => date_val.decrement_month(),
                         (DateType::DateTime, 2) => {
                             date_val.checked_sub_signed(Duration::days(1)).unwrap()
                         }
