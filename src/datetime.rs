@@ -1,6 +1,8 @@
 use std::io;
 
-use chrono::{DateTime, Datelike, Duration, NaiveDate, NaiveDateTime, Timelike, Utc};
+use chrono::{
+    DateTime, Datelike, Duration, NaiveDate, NaiveDateTime, SecondsFormat, TimeZone, Timelike, Utc,
+};
 use console::{style, Key, Term};
 use std::cmp::{max, min};
 use theme::{get_default_theme, TermThemeRenderer, Theme};
@@ -278,14 +280,7 @@ impl<'a> DateTimeSelect<'a> {
     fn interact_on(&self, term: &Term) -> io::Result<String> {
         let mut date_val = self.default.unwrap_or_else(|| {
             // Current date in UTC is used as default time if override not set.
-            Utc::now()
-                .with_hour(0)
-                .unwrap()
-                .with_minute(0)
-                .unwrap()
-                .with_second(0)
-                .unwrap()
-                .naive_utc()
+            Utc::today().and_hms(0, 0, 0).naive_utc()
         });
 
         date_val = self.check_date(date_val);
@@ -329,28 +324,12 @@ impl<'a> DateTimeSelect<'a> {
                         term.clear_last_lines(1)?;
                     }
                     // Clean up formatting of returned string.
-                    let date_str = match &self.date_type {
-                        DateType::Date => format!(
-                            "{}-{:02}-{:02}",
-                            date_val.year(),
-                            date_val.month(),
-                            date_val.day(),
-                        ),
-                        DateType::Time => format!(
-                            "{:02}:{:02}:{:02}",
-                            date_val.hour(),
-                            date_val.minute(),
-                            date_val.second(),
-                        ),
-                        DateType::DateTime => format!(
-                            "{}-{:02}-{:02} {:02}:{:02}:{:02}",
-                            date_val.year(),
-                            date_val.month(),
-                            date_val.day(),
-                            date_val.hour(),
-                            date_val.minute(),
-                            date_val.second(),
-                        ),
+                    let date_str = match self.date_type {
+                        DateType::Date => date_val.format("%Y-%m-%d").to_string(),
+                        DateType::Time => date_val.format("%H:%M:%S").to_string(),
+                        DateType::DateTime => Utc
+                            .from_utc_datetime(&date_val)
+                            .to_rfc3339_opts(SecondsFormat::Secs, true),
                     };
                     return Ok(date_str);
                 }
