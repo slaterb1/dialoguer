@@ -416,47 +416,43 @@ impl<'a> DateTimeSelect<'a> {
                         if pos == 0 && digits.len() == 4 {
                             let num =
                                 digits[0] * 1000 + digits[1] * 100 + digits[2] * 10 + digits[3];
-                            date_val = match &self.date_type {
-                                DateType::Date => date_val.with_year(num as i32).unwrap(),
-                                DateType::DateTime => date_val.with_year(num as i32).unwrap(),
+
+                            date_val = match self.date_type {
+                                DateType::Date | DateType::DateTime => {
+                                    date_val.with_year(num as i32)
+                                }
                                 DateType::Time => panic!("Time not supported for 4 digits"),
-                            };
+                            }
+                            .unwrap_or(date_val);
+
                             digits.clear();
                         // Have 2 digits in any position, including 0 if hours.
                         } else if digits.len() == 2 && (pos > 0 || self.date_type == DateType::Time)
                         {
                             let num = digits[0] * 10 + digits[1];
-                            date_val = match (&self.date_type, pos) {
-                                (DateType::Date, 1) => date_val.with_month(num).unwrap_or(date_val),
-                                (DateType::Date, 2) => date_val.with_day(num).unwrap_or(date_val),
-                                (DateType::Time, 0) => date_val.with_hour(num).unwrap_or(date_val),
-                                (DateType::Time, 1) => {
-                                    date_val.with_minute(num).unwrap_or(date_val)
+                            date_val = match (self.date_type, pos) {
+                                (DateType::DateTime, 1) | (DateType::Date, 1) => {
+                                    date_val.with_month(num)
                                 }
-                                (DateType::Time, 2) => {
-                                    date_val.with_second(num).unwrap_or(date_val)
+                                (DateType::DateTime, 2) | (DateType::Date, 2) => {
+                                    date_val.with_day(num)
                                 }
-                                (DateType::DateTime, 1) => {
-                                    date_val.with_month(num).unwrap_or(date_val)
+                                (DateType::DateTime, 3) | (DateType::Time, 0) => {
+                                    date_val.with_hour(num)
                                 }
-                                (DateType::DateTime, 2) => {
-                                    date_val.with_day(num).unwrap_or(date_val)
+                                (DateType::DateTime, 4) | (DateType::Time, 1) => {
+                                    date_val.with_minute(num)
                                 }
-                                (DateType::DateTime, 3) => {
-                                    date_val.with_hour(num).unwrap_or(date_val)
-                                }
-                                (DateType::DateTime, 4) => {
-                                    date_val.with_minute(num).unwrap_or(date_val)
-                                }
-                                (DateType::DateTime, 5) => {
-                                    date_val.with_second(num).unwrap_or(date_val)
+                                (DateType::DateTime, 5) | (DateType::Time, 2) => {
+                                    date_val.with_second(num)
                                 }
                                 (DateType::Date, _) => panic!("stepped out of bounds on Date"),
                                 (DateType::Time, _) => panic!("stepped out of bounds on Time"),
                                 (DateType::DateTime, _) => {
                                     panic!("stepped out of bounds on DateTime")
                                 }
-                            };
+                            }
+                            .unwrap_or(date_val);
                             digits.clear();
                         }
                     } else {
