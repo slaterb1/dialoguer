@@ -365,70 +365,42 @@ impl<'a> DateTimeSelect<'a> {
                 // Increment datetime by 1.
                 Key::ArrowUp | Key::Char('j') => {
                     date_val = match (&self.date_type, pos) {
-                        (DateType::Date, 0) => date_val.increment_year(),
-                        (DateType::Date, 1) => date_val.increment_month(),
-                        (DateType::Date, 2) => {
-                            date_val.checked_add_signed(Duration::days(1)).unwrap()
+                        (DateType::DateTime, 0) | (DateType::Date, 0) => date_val.increment_year(),
+                        (DateType::DateTime, 1) | (DateType::Date, 1) => date_val.increment_month(),
+                        (DateType::DateTime, 2) | (DateType::Date, 2) => {
+                            date_val + Duration::days(1)
                         }
-                        (DateType::Time, 0) => {
-                            date_val.checked_add_signed(Duration::hours(1)).unwrap()
+                        (DateType::DateTime, 3) | (DateType::Time, 0) => {
+                            date_val + Duration::hours(1)
                         }
-                        (DateType::Time, 1) => {
-                            date_val.checked_add_signed(Duration::minutes(1)).unwrap()
+                        (DateType::DateTime, 4) | (DateType::Time, 1) => {
+                            date_val + Duration::minutes(1)
                         }
-                        (DateType::Time, 2) => {
-                            date_val.checked_add_signed(Duration::seconds(1)).unwrap()
-                        }
-                        (DateType::DateTime, 0) => date_val.increment_year(),
-                        (DateType::DateTime, 1) => date_val.increment_month(),
-                        (DateType::DateTime, 2) => {
-                            date_val.checked_add_signed(Duration::days(1)).unwrap()
-                        }
-                        (DateType::DateTime, 3) => {
-                            date_val.checked_add_signed(Duration::hours(1)).unwrap()
-                        }
-                        (DateType::DateTime, 4) => {
-                            date_val.checked_add_signed(Duration::minutes(1)).unwrap()
-                        }
-                        (DateType::DateTime, 5) => {
-                            date_val.checked_add_signed(Duration::seconds(1)).unwrap()
+                        (DateType::DateTime, 5) | (DateType::Time, 2) => {
+                            date_val + Duration::seconds(1)
                         }
                         (DateType::Date, _) => panic!("stepped out of bounds on Date"),
                         (DateType::Time, _) => panic!("stepped out of bounds on Time"),
                         (DateType::DateTime, _) => panic!("stepped out of bounds on DateTime"),
                     };
-                    digits = Vec::with_capacity(4);
+                    digits.clear();
                 }
                 // Decrement the datetime by 1.
                 Key::ArrowDown | Key::Char('k') => {
                     date_val = match (&self.date_type, pos) {
-                        (DateType::Date, 0) => date_val.decrement_year(),
-                        (DateType::Date, 1) => date_val.decrement_month(),
-                        (DateType::Date, 2) => {
-                            date_val.checked_sub_signed(Duration::days(1)).unwrap()
+                        (DateType::DateTime, 0) | (DateType::Date, 0) => date_val.decrement_year(),
+                        (DateType::DateTime, 1) | (DateType::Date, 1) => date_val.decrement_month(),
+                        (DateType::DateTime, 2) | (DateType::Date, 2) => {
+                            date_val - Duration::days(1)
                         }
-                        (DateType::Time, 0) => {
-                            date_val.checked_sub_signed(Duration::hours(1)).unwrap()
+                        (DateType::DateTime, 3) | (DateType::Time, 0) => {
+                            date_val - Duration::hours(1)
                         }
-                        (DateType::Time, 1) => {
-                            date_val.checked_sub_signed(Duration::minutes(1)).unwrap()
+                        (DateType::DateTime, 4) | (DateType::Time, 1) => {
+                            date_val - Duration::minutes(1)
                         }
-                        (DateType::Time, 2) => {
-                            date_val.checked_sub_signed(Duration::seconds(1)).unwrap()
-                        }
-                        (DateType::DateTime, 0) => date_val.decrement_year(),
-                        (DateType::DateTime, 1) => date_val.decrement_month(),
-                        (DateType::DateTime, 2) => {
-                            date_val.checked_sub_signed(Duration::days(1)).unwrap()
-                        }
-                        (DateType::DateTime, 3) => {
-                            date_val.checked_sub_signed(Duration::hours(1)).unwrap()
-                        }
-                        (DateType::DateTime, 4) => {
-                            date_val.checked_sub_signed(Duration::minutes(1)).unwrap()
-                        }
-                        (DateType::DateTime, 5) => {
-                            date_val.checked_sub_signed(Duration::seconds(1)).unwrap()
+                        (DateType::DateTime, 5) | (DateType::Time, 2) => {
+                            date_val - Duration::seconds(1)
                         }
                         (DateType::Date, _) => panic!("stepped out of bounds on Date"),
                         (DateType::Time, _) => panic!("stepped out of bounds on Time"),
