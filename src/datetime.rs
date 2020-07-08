@@ -1,6 +1,6 @@
 use std::io;
 
-use chrono::{DateTime, Datelike, Duration, FixedOffset, TimeZone, Timelike, Utc};
+use chrono::{DateTime, Datelike, Duration, NaiveDate, NaiveDateTime, Timelike, Utc};
 use console::{style, Key, Term};
 use std::cmp::{max, min};
 use theme::{get_default_theme, TermThemeRenderer, Theme};
@@ -24,12 +24,12 @@ pub enum DateType {
 /// Note: Date values can be changed by UP/DOWN/j/k or specifying numerical values.
 pub struct DateTimeSelect<'a> {
     prompt: Option<String>,
-    default: Option<DateTime<FixedOffset>>,
+    default: Option<NaiveDateTime>,
     theme: &'a dyn Theme,
     weekday: bool,
     date_type: DateType,
-    min: DateTime<FixedOffset>,
-    max: DateTime<FixedOffset>,
+    min: NaiveDateTime,
+    max: NaiveDateTime,
     clear: bool,
     show_match: bool,
 }
@@ -47,8 +47,8 @@ impl<'a> DateTimeSelect<'a> {
             theme,
             weekday: true,
             date_type: DateType::DateTime,
-            min: FixedOffset::east(0).ymd(0, 1, 1).and_hms(0, 0, 0),
-            max: FixedOffset::east(0).ymd(9999, 12, 31).and_hms(23, 59, 59),
+            min: NaiveDate::from_ymd(0, 1, 1).and_hms(0, 0, 0),
+            max: NaiveDate::from_ymd(9999, 12, 31).and_hms(23, 59, 59),
             clear: true,
             show_match: false,
         }
@@ -60,8 +60,11 @@ impl<'a> DateTimeSelect<'a> {
     }
     /// Sets default time to start with.
     pub fn default(&mut self, datetime: &str) -> &mut Self {
-        self.default =
-            Some(DateTime::parse_from_rfc3339(datetime).expect("date format must match rfc3339"));
+        self.default = Some(
+            DateTime::parse_from_rfc3339(datetime)
+                .expect("date format must match rfc3339")
+                .naive_local(),
+        );
         self
     }
     /// Sets whether to show weekday or not.
@@ -76,12 +79,16 @@ impl<'a> DateTimeSelect<'a> {
     }
     /// Sets min value for Date or DateTime.
     pub fn min(&mut self, val: &str) -> &mut Self {
-        self.min = DateTime::parse_from_rfc3339(val).expect("date format must match rfc3339");
+        self.min = DateTime::parse_from_rfc3339(val)
+            .expect("date format must match rfc3339")
+            .naive_local();
         self
     }
     /// Sets max value for Date or DateTime.
     pub fn max(&mut self, val: &'a str) -> &mut Self {
-        self.max = DateTime::parse_from_rfc3339(val).expect("date format must match rfc3339");
+        self.max = DateTime::parse_from_rfc3339(val)
+            .expect("date format must match rfc3339")
+            .naive_local();
         self
     }
     /// Sets whether to clear inputs from terminal.
@@ -95,11 +102,11 @@ impl<'a> DateTimeSelect<'a> {
         self
     }
 
-    fn check_date(&self, val: DateTime<FixedOffset>) -> DateTime<FixedOffset> {
+    fn check_date(&self, val: NaiveDateTime) -> NaiveDateTime {
         min(max(val, self.min), self.max)
     }
 
-    fn terminal_format(&self, val: DateTime<FixedOffset>, pos: isize) -> String {
+    fn terminal_format(&self, val: NaiveDateTime, pos: isize) -> String {
         match self.date_type {
             DateType::Date => format!(
                 "{}-{:02}-{:02}",
@@ -183,15 +190,14 @@ impl<'a> DateTimeSelect<'a> {
     fn interact_on(&self, term: &Term) -> io::Result<String> {
         let mut date_val = self.default.unwrap_or_else(|| {
             // Current date in UTC is used as default time if override not set.
-            let now = Utc::now()
+            Utc::now()
                 .with_hour(0)
                 .unwrap()
                 .with_minute(0)
                 .unwrap()
                 .with_second(0)
-                .unwrap();
-
-            DateTime::parse_from_rfc3339(&now.to_rfc3339()).expect("date format must match rfc3339")
+                .unwrap()
+                .naive_utc()
         });
 
         date_val = self.check_date(date_val);
@@ -466,11 +472,7 @@ mod tests {
         datetime_select.default("2019-01-01T00:00:00-00:00");
         assert_eq!(
             datetime_select.default,
-            Some(
-                FixedOffset::east(0)
-                    .ymd(2019, 1, 1)
-                    .and_hms_milli(0, 0, 0, 0)
-            )
+            Some(NaiveDate::from_ymd(2019, 1, 1).and_hms_milli(0, 0, 0, 0))
         );
     }
     #[test]
