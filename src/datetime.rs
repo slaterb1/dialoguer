@@ -459,6 +459,9 @@ impl<'a> DateTimeSelect<'a> {
                         digits.clear();
                     }
                 }
+                Key::Backspace => {
+                    digits.pop();
+                }
                 _ => {}
             }
             date_val = self.check_date(date_val);
