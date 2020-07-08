@@ -6,7 +6,7 @@ use std::cmp::{max, min};
 use theme::{get_default_theme, TermThemeRenderer, Theme};
 
 /// The possible types of datetime selections that can be made.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum DateType {
     Date,
     Time,
@@ -94,9 +94,85 @@ impl<'a> DateTimeSelect<'a> {
         self.show_match = val;
         self
     }
+
     fn check_date(&self, val: DateTime<FixedOffset>) -> DateTime<FixedOffset> {
         min(max(val, self.min), self.max)
     }
+
+    fn terminal_format(&self, val: DateTime<FixedOffset>, pos: isize) -> String {
+        match self.date_type {
+            DateType::Date => format!(
+                "{}-{:02}-{:02}",
+                if pos == 0 {
+                    style(val.year()).bold()
+                } else {
+                    style(val.year()).dim()
+                },
+                if pos == 1 {
+                    style(val.month()).bold()
+                } else {
+                    style(val.month()).dim()
+                },
+                if pos == 2 {
+                    style(val.day()).bold()
+                } else {
+                    style(val.day()).dim()
+                },
+            ),
+            DateType::Time => format!(
+                "{:02}:{:02}:{:02}",
+                if pos == 0 {
+                    style(val.hour()).bold()
+                } else {
+                    style(val.hour()).dim()
+                },
+                if pos == 1 {
+                    style(val.minute()).bold()
+                } else {
+                    style(val.minute()).dim()
+                },
+                if pos == 2 {
+                    style(val.second()).bold()
+                } else {
+                    style(val.second()).dim()
+                },
+            ),
+            DateType::DateTime => format!(
+                "{}-{:02}-{:02} {:02}:{:02}:{:02}",
+                if pos == 0 {
+                    style(val.year()).bold()
+                } else {
+                    style(val.year()).dim()
+                },
+                if pos == 1 {
+                    style(val.month()).bold()
+                } else {
+                    style(val.month()).dim()
+                },
+                if pos == 2 {
+                    style(val.day()).bold()
+                } else {
+                    style(val.day()).dim()
+                },
+                if pos == 3 {
+                    style(val.hour()).bold()
+                } else {
+                    style(val.hour()).dim()
+                },
+                if pos == 4 {
+                    style(val.minute()).bold()
+                } else {
+                    style(val.minute()).dim()
+                },
+                if pos == 5 {
+                    style(val.second()).bold()
+                } else {
+                    style(val.second()).dim()
+                },
+            ),
+        }
+    }
+
     /// Enables user interaction and returns the result.
     ///
     /// The dialog is rendered on stderr.
@@ -105,16 +181,16 @@ impl<'a> DateTimeSelect<'a> {
     }
     /// Like `interact` but allows a specific terminal to be set.
     fn interact_on(&self, term: &Term) -> io::Result<String> {
-        // Current date in UTC is used as default time if override not set.
-        let now = Utc::now()
-            .with_hour(0)
-            .unwrap()
-            .with_minute(0)
-            .unwrap()
-            .with_second(0)
-            .unwrap();
-
         let mut date_val = self.default.unwrap_or_else(|| {
+            // Current date in UTC is used as default time if override not set.
+            let now = Utc::now()
+                .with_hour(0)
+                .unwrap()
+                .with_minute(0)
+                .unwrap()
+                .with_second(0)
+                .unwrap();
+
             DateTime::parse_from_rfc3339(&now.to_rfc3339()).expect("date format must match rfc3339")
         });
 
@@ -132,77 +208,7 @@ impl<'a> DateTimeSelect<'a> {
 
         loop {
             // Styling is added to highlight pos being changed.
-            let date_str = match &self.date_type {
-                DateType::Date => format!(
-                    "{}-{:02}-{:02}",
-                    if pos == 0 {
-                        style(date_val.year()).bold()
-                    } else {
-                        style(date_val.year()).dim()
-                    },
-                    if pos == 1 {
-                        style(date_val.month()).bold()
-                    } else {
-                        style(date_val.month()).dim()
-                    },
-                    if pos == 2 {
-                        style(date_val.day()).bold()
-                    } else {
-                        style(date_val.day()).dim()
-                    },
-                ),
-                DateType::Time => format!(
-                    "{:02}:{:02}:{:02}",
-                    if pos == 0 {
-                        style(date_val.hour()).bold()
-                    } else {
-                        style(date_val.hour()).dim()
-                    },
-                    if pos == 1 {
-                        style(date_val.minute()).bold()
-                    } else {
-                        style(date_val.minute()).dim()
-                    },
-                    if pos == 2 {
-                        style(date_val.second()).bold()
-                    } else {
-                        style(date_val.second()).dim()
-                    },
-                ),
-                DateType::DateTime => format!(
-                    "{}-{:02}-{:02} {:02}:{:02}:{:02}",
-                    if pos == 0 {
-                        style(date_val.year()).bold()
-                    } else {
-                        style(date_val.year()).dim()
-                    },
-                    if pos == 1 {
-                        style(date_val.month()).bold()
-                    } else {
-                        style(date_val.month()).dim()
-                    },
-                    if pos == 2 {
-                        style(date_val.day()).bold()
-                    } else {
-                        style(date_val.day()).dim()
-                    },
-                    if pos == 3 {
-                        style(date_val.hour()).bold()
-                    } else {
-                        style(date_val.hour()).dim()
-                    },
-                    if pos == 4 {
-                        style(date_val.minute()).bold()
-                    } else {
-                        style(date_val.minute()).dim()
-                    },
-                    if pos == 5 {
-                        style(date_val.second()).bold()
-                    } else {
-                        style(date_val.second()).dim()
-                    },
-                ),
-            };
+            let date_str = self.terminal_format(date_val, pos);
 
             // Add weekday if specified.
             let date_str = match &self.weekday {
