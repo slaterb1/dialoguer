@@ -343,7 +343,7 @@ impl<'a> DateTimeSelect<'a> {
                 }
                 // Increment datetime by 1.
                 Key::ArrowUp | Key::Char('j') => {
-                    date_val = match (&self.date_type, pos) {
+                    date_val = match (self.date_type, pos) {
                         (DateType::DateTime, 0) | (DateType::Date, 0) => date_val.increment_year(),
                         (DateType::DateTime, 1) | (DateType::Date, 1) => date_val.increment_month(),
                         (DateType::DateTime, 2) | (DateType::Date, 2) => {
@@ -366,7 +366,7 @@ impl<'a> DateTimeSelect<'a> {
                 }
                 // Decrement the datetime by 1.
                 Key::ArrowDown | Key::Char('k') => {
-                    date_val = match (&self.date_type, pos) {
+                    date_val = match (self.date_type, pos) {
                         (DateType::DateTime, 0) | (DateType::Date, 0) => date_val.decrement_year(),
                         (DateType::DateTime, 1) | (DateType::Date, 1) => date_val.decrement_month(),
                         (DateType::DateTime, 2) | (DateType::Date, 2) => {
@@ -489,5 +489,29 @@ mod tests {
         let mut datetime_select = DateTimeSelect::new();
         datetime_select.date_type(DateType::Date);
         assert_eq!(datetime_select.date_type, DateType::Date);
+    }
+    #[test]
+    fn test_max_min_datetimes() {
+        let mut datetime_select = DateTimeSelect::new();
+
+        datetime_select.min("2020-02-20T02:20:25Z");
+        let min_date = NaiveDate::from_ymd(2020, 2, 20).and_hms(2, 20, 25);
+        assert_eq!(datetime_select.min, min_date);
+
+        datetime_select.max("2022-11-30T00:00:00Z");
+        let max_date = NaiveDate::from_ymd(2022, 11, 30).and_hms(0, 0, 0);
+        assert_eq!(datetime_select.max, max_date);
+
+        let in_range_date = NaiveDate::from_ymd(2020, 7, 8).and_hms(17, 1, 30);
+        assert_eq!(datetime_select.check_date(in_range_date), in_range_date);
+
+        assert_eq!(
+            datetime_select.check_date(NaiveDate::from_ymd(2000, 1, 1).and_hms(0, 0, 0)),
+            min_date
+        );
+        assert_eq!(
+            datetime_select.check_date(NaiveDate::from_ymd(2030, 1, 1).and_hms(0, 0, 0)),
+            max_date
+        );
     }
 }
