@@ -1,8 +1,6 @@
 use std::io;
 
-use chrono::{
-    DateTime, Datelike, Duration, NaiveDate, NaiveDateTime, SecondsFormat, TimeZone, Timelike, Utc,
-};
+use chrono::{DateTime, Datelike, Duration, NaiveDate, NaiveDateTime, SecondsFormat, TimeZone, Timelike, Utc};
 use console::{style, Key, Term};
 use std::cmp::{max, min};
 use theme::{get_default_theme, TermThemeRenderer, Theme};
@@ -23,26 +21,20 @@ where
     fn increment_year(&self) -> Self {
         self.with_year(self.year() + 1).unwrap_or_else(|| {
             // If we're currently on a leap day we know how to handle a failure
-            assert_eq!(self.month(), 2, "year increment failed away from leap day");
-            assert_eq!(self.day(), 29, "year increment failed away from leap day");
+            assert_eq!(self.month(), 2, "Unexpected failure in year increment. Please open a bug ticket with the current case.");
+            assert_eq!(self.day(), 29, "Unexpected failure in year increment. Please open a bug ticket with the current case.");
 
-            self.with_day(28)
-                .unwrap()
-                .with_year(self.year() + 1)
-                .unwrap()
+            self.with_day(28).unwrap().with_year(self.year() + 1).unwrap()
         })
     }
 
     fn decrement_year(&self) -> Self {
         self.with_year(self.year() - 1).unwrap_or_else(|| {
             // If we're currently on a leap day we know how to handle a failure
-            assert_eq!(self.month(), 2, "year decrement failed away from leap day");
-            assert_eq!(self.day(), 29, "year decrement failed away from leap day");
+            assert_eq!(self.month(), 2, "Unexpected failure in year decrement. Please open a bug ticket with the current case.");
+            assert_eq!(self.day(), 29, "Unexpected failure in year decrement. Please open a bug ticket with the current case.");
 
-            self.with_day(28)
-                .unwrap()
-                .with_year(self.year() - 1)
-                .unwrap()
+            self.with_day(28).unwrap().with_year(self.year() - 1).unwrap()
         })
     }
 
@@ -50,22 +42,16 @@ where
         let new_month = self.month() + 1;
         if new_month > 12 {
             // This case should be infallible since both December and January have 31 days
-            self.with_year(self.year() + 1)
-                .unwrap()
-                .with_month(1)
-                .unwrap()
+            self.with_year(self.year() + 1).unwrap().with_month(1).unwrap()
         } else {
             self.with_month(new_month).unwrap_or_else(|| {
                 // We've stepped off the end of the month most likely, adjust the day if so
                 assert!(
                     self.day() > MONTH_END_DAYS[new_month as usize],
-                    "month increment failed with valid day in next month"
+                    "Unexpected failure in month increment. Please open a bug ticket with the current case."
                 );
 
-                self.with_day(MONTH_END_DAYS[new_month as usize])
-                    .unwrap()
-                    .with_month(new_month)
-                    .unwrap()
+                self.with_day(MONTH_END_DAYS[new_month as usize]).unwrap().with_month(new_month).unwrap()
             })
         }
     }
@@ -74,22 +60,16 @@ where
         let new_month = self.month() - 1;
         if new_month < 1 {
             // This case should be infallible since both December and January have 31 days
-            self.with_year(self.year() - 1)
-                .unwrap()
-                .with_month(12)
-                .unwrap()
+            self.with_year(self.year() - 1).unwrap().with_month(12).unwrap()
         } else {
             self.with_month(new_month).unwrap_or_else(|| {
                 // We've stepped off the end of the month most likely, adjust the day if so
                 assert!(
                     self.day() > MONTH_END_DAYS[new_month as usize],
-                    "month decrement failed with valid day in next month"
+                    "Unexpected failure in month decrement. Please open a bug ticket with the current case."
                 );
 
-                self.with_day(MONTH_END_DAYS[new_month as usize])
-                    .unwrap()
-                    .with_month(new_month)
-                    .unwrap()
+                self.with_day(MONTH_END_DAYS[new_month as usize]).unwrap().with_month(new_month).unwrap()
             })
         }
     }
@@ -150,11 +130,7 @@ impl<'a> DateTimeSelect<'a> {
     }
     /// Sets default time to start with.
     pub fn default(&mut self, datetime: &str) -> &mut Self {
-        self.default = Some(
-            DateTime::parse_from_rfc3339(datetime)
-                .expect("date format must match rfc3339")
-                .naive_local(),
-        );
+        self.default = Some(DateTime::parse_from_rfc3339(datetime).expect("date format must match rfc3339").naive_local());
         self
     }
     /// Sets whether to show weekday or not.
@@ -169,17 +145,13 @@ impl<'a> DateTimeSelect<'a> {
     }
     /// Sets min value for Date or DateTime.
     pub fn min(&mut self, val: &str) -> &mut Self {
-        self.min = DateTime::parse_from_rfc3339(val)
-            .expect("date format must match rfc3339")
-            .naive_local();
+        self.min = DateTime::parse_from_rfc3339(val).expect("date format must match rfc3339").naive_local();
         assert!(self.max >= self.min, "maximum must be larger than minimum");
         self
     }
     /// Sets max value for Date or DateTime.
     pub fn max(&mut self, val: &'a str) -> &mut Self {
-        self.max = DateTime::parse_from_rfc3339(val)
-            .expect("date format must match rfc3339")
-            .naive_local();
+        self.max = DateTime::parse_from_rfc3339(val).expect("date format must match rfc3339").naive_local();
         assert!(self.max >= self.min, "maximum must be larger than minimum");
         self
     }
@@ -202,72 +174,24 @@ impl<'a> DateTimeSelect<'a> {
         match self.date_type {
             DateType::Date => format!(
                 "{}-{:02}-{:02}",
-                if pos == 0 {
-                    style(val.year()).bold()
-                } else {
-                    style(val.year()).dim()
-                },
-                if pos == 1 {
-                    style(val.month()).bold()
-                } else {
-                    style(val.month()).dim()
-                },
-                if pos == 2 {
-                    style(val.day()).bold()
-                } else {
-                    style(val.day()).dim()
-                },
+                if pos == 0 { style(val.year()).bold() } else { style(val.year()).dim() },
+                if pos == 1 { style(val.month()).bold() } else { style(val.month()).dim() },
+                if pos == 2 { style(val.day()).bold() } else { style(val.day()).dim() },
             ),
             DateType::Time => format!(
                 "{:02}:{:02}:{:02}",
-                if pos == 0 {
-                    style(val.hour()).bold()
-                } else {
-                    style(val.hour()).dim()
-                },
-                if pos == 1 {
-                    style(val.minute()).bold()
-                } else {
-                    style(val.minute()).dim()
-                },
-                if pos == 2 {
-                    style(val.second()).bold()
-                } else {
-                    style(val.second()).dim()
-                },
+                if pos == 0 { style(val.hour()).bold() } else { style(val.hour()).dim() },
+                if pos == 1 { style(val.minute()).bold() } else { style(val.minute()).dim() },
+                if pos == 2 { style(val.second()).bold() } else { style(val.second()).dim() },
             ),
             DateType::DateTime => format!(
                 "{}-{:02}-{:02} {:02}:{:02}:{:02}",
-                if pos == 0 {
-                    style(val.year()).bold()
-                } else {
-                    style(val.year()).dim()
-                },
-                if pos == 1 {
-                    style(val.month()).bold()
-                } else {
-                    style(val.month()).dim()
-                },
-                if pos == 2 {
-                    style(val.day()).bold()
-                } else {
-                    style(val.day()).dim()
-                },
-                if pos == 3 {
-                    style(val.hour()).bold()
-                } else {
-                    style(val.hour()).dim()
-                },
-                if pos == 4 {
-                    style(val.minute()).bold()
-                } else {
-                    style(val.minute()).dim()
-                },
-                if pos == 5 {
-                    style(val.second()).bold()
-                } else {
-                    style(val.second()).dim()
-                },
+                if pos == 0 { style(val.year()).bold() } else { style(val.year()).dim() },
+                if pos == 1 { style(val.month()).bold() } else { style(val.month()).dim() },
+                if pos == 2 { style(val.day()).bold() } else { style(val.day()).dim() },
+                if pos == 3 { style(val.hour()).bold() } else { style(val.hour()).dim() },
+                if pos == 4 { style(val.minute()).bold() } else { style(val.minute()).dim() },
+                if pos == 5 { style(val.second()).bold() } else { style(val.second()).dim() },
             ),
         }
     }
@@ -290,7 +214,7 @@ impl<'a> DateTimeSelect<'a> {
 
         // Set vars for handling changing datetimes.
         let mut pos = 0;
-        let max_pos = match &self.date_type {
+        let max_pos = match self.date_type {
             DateType::Date => 2,
             DateType::Time => 2,
             DateType::DateTime => 5,
@@ -329,9 +253,7 @@ impl<'a> DateTimeSelect<'a> {
                     let date_str = match self.date_type {
                         DateType::Date => date_val.format("%Y-%m-%d").to_string(),
                         DateType::Time => date_val.format("%H:%M:%S").to_string(),
-                        DateType::DateTime => Utc
-                            .from_utc_datetime(&date_val)
-                            .to_rfc3339_opts(SecondsFormat::Secs, true),
+                        DateType::DateTime => Utc.from_utc_datetime(&date_val).to_rfc3339_opts(SecondsFormat::Secs, true),
                     };
                     return Ok(date_str);
                 }
@@ -348,18 +270,10 @@ impl<'a> DateTimeSelect<'a> {
                     date_val = match (self.date_type, pos) {
                         (DateType::DateTime, 0) | (DateType::Date, 0) => date_val.increment_year(),
                         (DateType::DateTime, 1) | (DateType::Date, 1) => date_val.increment_month(),
-                        (DateType::DateTime, 2) | (DateType::Date, 2) => {
-                            date_val + Duration::days(1)
-                        }
-                        (DateType::DateTime, 3) | (DateType::Time, 0) => {
-                            date_val + Duration::hours(1)
-                        }
-                        (DateType::DateTime, 4) | (DateType::Time, 1) => {
-                            date_val + Duration::minutes(1)
-                        }
-                        (DateType::DateTime, 5) | (DateType::Time, 2) => {
-                            date_val + Duration::seconds(1)
-                        }
+                        (DateType::DateTime, 2) | (DateType::Date, 2) => date_val + Duration::days(1),
+                        (DateType::DateTime, 3) | (DateType::Time, 0) => date_val + Duration::hours(1),
+                        (DateType::DateTime, 4) | (DateType::Time, 1) => date_val + Duration::minutes(1),
+                        (DateType::DateTime, 5) | (DateType::Time, 2) => date_val + Duration::seconds(1),
                         (DateType::Date, _) => panic!("stepped out of bounds on Date"),
                         (DateType::Time, _) => panic!("stepped out of bounds on Time"),
                         (DateType::DateTime, _) => panic!("stepped out of bounds on DateTime"),
@@ -371,18 +285,10 @@ impl<'a> DateTimeSelect<'a> {
                     date_val = match (self.date_type, pos) {
                         (DateType::DateTime, 0) | (DateType::Date, 0) => date_val.decrement_year(),
                         (DateType::DateTime, 1) | (DateType::Date, 1) => date_val.decrement_month(),
-                        (DateType::DateTime, 2) | (DateType::Date, 2) => {
-                            date_val - Duration::days(1)
-                        }
-                        (DateType::DateTime, 3) | (DateType::Time, 0) => {
-                            date_val - Duration::hours(1)
-                        }
-                        (DateType::DateTime, 4) | (DateType::Time, 1) => {
-                            date_val - Duration::minutes(1)
-                        }
-                        (DateType::DateTime, 5) | (DateType::Time, 2) => {
-                            date_val - Duration::seconds(1)
-                        }
+                        (DateType::DateTime, 2) | (DateType::Date, 2) => date_val - Duration::days(1),
+                        (DateType::DateTime, 3) | (DateType::Time, 0) => date_val - Duration::hours(1),
+                        (DateType::DateTime, 4) | (DateType::Time, 1) => date_val - Duration::minutes(1),
+                        (DateType::DateTime, 5) | (DateType::Time, 2) => date_val - Duration::seconds(1),
                         (DateType::Date, _) => panic!("stepped out of bounds on Date"),
                         (DateType::Time, _) => panic!("stepped out of bounds on Time"),
                         (DateType::DateTime, _) => panic!("stepped out of bounds on DateTime"),
@@ -395,43 +301,27 @@ impl<'a> DateTimeSelect<'a> {
                         digits.push(digit);
                         // Need 4 digits to set year
                         if pos == 0 && digits.len() == 4 {
-                            let num =
-                                digits[0] * 1000 + digits[1] * 100 + digits[2] * 10 + digits[3];
+                            let num = digits[0] * 1000 + digits[1] * 100 + digits[2] * 10 + digits[3];
 
                             date_val = match self.date_type {
-                                DateType::Date | DateType::DateTime => {
-                                    date_val.with_year(num as i32)
-                                }
+                                DateType::Date | DateType::DateTime => date_val.with_year(num as i32),
                                 DateType::Time => panic!("Time not supported for 4 digits"),
                             }
                             .unwrap_or(date_val);
 
                             digits.clear();
                         // Have 2 digits in any position, including 0 if hours.
-                        } else if digits.len() == 2 && (pos > 0 || self.date_type == DateType::Time)
-                        {
+                        } else if digits.len() == 2 && (pos > 0 || self.date_type == DateType::Time) {
                             let num = digits[0] * 10 + digits[1];
                             date_val = match (self.date_type, pos) {
-                                (DateType::DateTime, 1) | (DateType::Date, 1) => {
-                                    date_val.with_month(num)
-                                }
-                                (DateType::DateTime, 2) | (DateType::Date, 2) => {
-                                    date_val.with_day(num)
-                                }
-                                (DateType::DateTime, 3) | (DateType::Time, 0) => {
-                                    date_val.with_hour(num)
-                                }
-                                (DateType::DateTime, 4) | (DateType::Time, 1) => {
-                                    date_val.with_minute(num)
-                                }
-                                (DateType::DateTime, 5) | (DateType::Time, 2) => {
-                                    date_val.with_second(num)
-                                }
+                                (DateType::DateTime, 1) | (DateType::Date, 1) => date_val.with_month(num),
+                                (DateType::DateTime, 2) | (DateType::Date, 2) => date_val.with_day(num),
+                                (DateType::DateTime, 3) | (DateType::Time, 0) => date_val.with_hour(num),
+                                (DateType::DateTime, 4) | (DateType::Time, 1) => date_val.with_minute(num),
+                                (DateType::DateTime, 5) | (DateType::Time, 2) => date_val.with_second(num),
                                 (DateType::Date, _) => panic!("stepped out of bounds on Date"),
                                 (DateType::Time, _) => panic!("stepped out of bounds on Time"),
-                                (DateType::DateTime, _) => {
-                                    panic!("stepped out of bounds on DateTime")
-                                }
+                                (DateType::DateTime, _) => panic!("stepped out of bounds on DateTime"),
                             }
                             .unwrap_or(date_val);
                             digits.clear();
@@ -469,10 +359,7 @@ mod tests {
     fn test_setting_proper_rfc3339_default() {
         let mut datetime_select = DateTimeSelect::new();
         datetime_select.default("2019-01-01T00:00:00-00:00");
-        assert_eq!(
-            datetime_select.default,
-            Some(NaiveDate::from_ymd(2019, 1, 1).and_hms_milli(0, 0, 0, 0))
-        );
+        assert_eq!(datetime_select.default, Some(NaiveDate::from_ymd(2019, 1, 1).and_hms_milli(0, 0, 0, 0)));
     }
     #[test]
     fn test_setting_prompt() {
@@ -507,13 +394,7 @@ mod tests {
         let in_range_date = NaiveDate::from_ymd(2020, 7, 8).and_hms(17, 1, 30);
         assert_eq!(datetime_select.check_date(in_range_date), in_range_date);
 
-        assert_eq!(
-            datetime_select.check_date(NaiveDate::from_ymd(2000, 1, 1).and_hms(0, 0, 0)),
-            min_date
-        );
-        assert_eq!(
-            datetime_select.check_date(NaiveDate::from_ymd(2030, 1, 1).and_hms(0, 0, 0)),
-            max_date
-        );
+        assert_eq!(datetime_select.check_date(NaiveDate::from_ymd(2000, 1, 1).and_hms(0, 0, 0)), min_date);
+        assert_eq!(datetime_select.check_date(NaiveDate::from_ymd(2030, 1, 1).and_hms(0, 0, 0)), max_date);
     }
 }
