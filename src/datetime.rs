@@ -172,6 +172,7 @@ impl<'a> DateTimeSelect<'a> {
         self.min = DateTime::parse_from_rfc3339(val)
             .expect("date format must match rfc3339")
             .naive_local();
+        assert!(self.max >= self.min, "maximum must be larger than minimum");
         self
     }
     /// Sets max value for Date or DateTime.
@@ -179,6 +180,7 @@ impl<'a> DateTimeSelect<'a> {
         self.max = DateTime::parse_from_rfc3339(val)
             .expect("date format must match rfc3339")
             .naive_local();
+        assert!(self.max >= self.min, "maximum must be larger than minimum");
         self
     }
     /// Sets whether to clear inputs from terminal.
